@@ -1,0 +1,6 @@
+{
+    "port": "COM11",
+    "board": "arduino:avr:leonardo",
+    "programmer": "ArduinoISP",
+    "sketch": "GenericConsole.ino"
+}
