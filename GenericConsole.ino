@@ -3,6 +3,11 @@
 */  
 #include <Joystick.h>
 #include <LiquidCrystal_I2C.h>
+
+// max counts for input types depend on the arduino board - leonardo assumed
+int POVCount = 2; // max 2
+int POTCount = 4; // max 4 in order defined by joystick true options matching sets
+int SWCount = 4; // max probably 10 for practicle use - 32 if display changed
 /*
 * name id 
 * constant for type 
@@ -17,33 +22,21 @@
 * see arduino joystick on github for more info 
 */
 Joystick_ Joystick(JOYSTICK_DEFAULT_REPORT_ID,JOYSTICK_TYPE_JOYSTICK,
-4, 2,
-true, true, false, 
-false, false, true, 
-false, true,
+SWCount, POVCount,
+true, true, false, // axis - x y z
+false, false, true, // rotate - x y z
+false, true,      // rudder throttle (slider)
 false, false, false);
 
 LiquidCrystal_I2C lcd(0x3F, 20, 4);
 
-int Sw1Pin = A0;
-int Sw1Max = 1023;
-int Sw1Min = 0;
-int Sw1Segments = 7;
-int Sw1Increment = Sw1Max / Sw1Segments;
-int Sw1MidPoint = Sw1Increment / 2;
-int Sw1Position = 0;
-int Sw2Pin = A1;
-int Sw2Max = 1023;
-int Sw2Min = 0;
-int Sw2Segments = 7;
-int Sw2Increment = Sw2Max / Sw2Segments;
-int Sw2MidPoint = Sw2Increment / 2;
-int Sw2Position = 0;
-int POVCount = 2;
 int POVPin [] = {A0, A1};
 int POVMax = 1023;
 int POVMin = 0;
 int POVSegments [] = {7, 7};
+int POVIncrement [] = {0, 0};
+int POVMidpoint [] = {0, 0};
+int iPOVIndex = 0;
 
 int POTPin [] = {A2, A3, A4, A5};
 int POTMax [] = {1023, 1023, 1023, 1023};
@@ -63,13 +56,16 @@ int ShootOffPin = A5;
 int ShootOffMax = 1023;
 int ShootOffMin = 0;
 
-int SWCount = 4;
 int SWPin [] = {7, 6, 5, 4};
 int SWButton [] = {0, 1, 2, 3};
-int SWLastState [] = {0, 0, 0, 0};
+uint8_t SWLastState [] = {0, 0, 0, 0};
 int iSWIndex = 0;
 
-char line0 [21];
+char POVLine [11];
+char SWLine [2];
+char println [4] [21];
+int iPrintLnIndx = 0;
+int iPrintLnCnt = 4;
 char line1 [21];
 char line2 [21];
 char line3 [21];
@@ -83,9 +79,14 @@ void setup() {
   Joystick.setRzAxisRange(0,1023);
   Joystick.setThrottleRange(0,1023);
 
+  for (iPOVIndex=0; iPOVIndex<POVCount; iPOVIndex++) {
+    POVIncrement[iPOVIndex] = POVMax / POVSegments[iPOVIndex];
+    POVMidpoint[iPOVIndex] = POVIncrement[iPOVIndex] / 2;
+  }
+
   for (iSWIndex = 0; iSWIndex<SWCount; iSWIndex++) {
     pinMode(SWPin[iSWIndex], INPUT_PULLUP);
-    Joystick.releaseButton(SWButton[iSWIndex]);
+    //Joystick.releaseButton(SWButton[iSWIndex]);
   }
   
   lcd.init();
@@ -96,46 +97,51 @@ void setup() {
   String strPosSwitchStatement = "V1 Generic 8/1/2021";
                                  
 void loop() {
-    lcd.home();
-
-    int Sw1Value = analogRead(Sw1Pin);
-    int Sw2Value = analogRead(Sw2Pin);
-
-    int Sw1Position = (Sw1Value * Sw1Segments + Sw1MidPoint) / Sw1Max;
-    int Sw2Position = (Sw2Value * Sw2Segments + Sw2MidPoint) / Sw2Max;
-
-    int TurnRate = map(analogRead(TurnRatePin), 0, 1023, TurnRateMin, TurnRateMax);
-    int CameraAngle = map(analogRead(IntakeCameraPin), 0, 1023, IntakeCameraMin, IntakeCameraMax);
-    int ShootSpeed = map(analogRead(ShootSpeedPin), 0, 1023, ShootSpeedMin, ShootSpeedMax);
-    int ShootOff = map(analogRead(ShootOffPin), 0, 1023, ShootOffMin, ShootOffMax);
-
-    int iPOV1 = Sw1Position * 45;
-    int iPOV2 = Sw2Position * 45;
-
-    for (iSWIndex=0; iSWIndex<SWCount; iSWIndex++) {
-      int SWCurrState = !digitalRead(SWPin[iSWIndex]);
-      //if (SWCurrState != SWLastState[iSWIndex]) {
-        Joystick.setButton(SWButton[iSWIndex], SWCurrState);
-        SWLastState[iSWIndex] = SWCurrState;
-      //}
-    }
-
-   lcd.setCursor(0,0);
-   sprintf(line0,"POV1: %3u POV2: %3u", iPOV1, iPOV2);
-   lcd.print(line0);
-   lcd.setCursor(0, 1);
-   sprintf(line1,"XA: %4u  YA: %4u", TurnRate, CameraAngle);
-   lcd.print(line1);
-   lcd.setCursor(0,2);
-   sprintf(line2,"ZR: %4u  SL: %4u", ShootSpeed, ShootOff);
-   lcd.print(line2);
-   lcd.setCursor(0,3);
-   
-   Joystick.setHatSwitch(0, iPOV1);
-   Joystick.setHatSwitch(1, iPOV2);
-   Joystick.setXAxis(TurnRate);
-   Joystick.setYAxis(CameraAngle);
-   Joystick.setRzAxis(ShootSpeed);
-   Joystick.setThrottle(ShootOff);
   
+  lcd.home();
+
+  for (iPrintLnIndx=0; iPrintLnIndx<iPrintLnCnt; iPrintLnIndx++) {
+    strcpy(println[iPrintLnIndx], "");
+  }
+
+  for (iPOVIndex=0; iPOVIndex<POVCount; iPOVIndex++) {
+    int POVValue = analogRead(POVPin[iPOVIndex]);
+    int POVPosition = (POVValue * POVSegments[iPOVIndex] + POVMidpoint[iPOVIndex]) / POVMax;
+    int POVHeading = POVPosition * 45;
+    Joystick.setHatSwitch(iPOVIndex, POVHeading);
+    sprintf(POVLine, "POV%1u: %3u ", iPOVIndex, POVHeading);
+    strcat(println[0], POVLine);
+  }
+  
+  int TurnRate = map(analogRead(TurnRatePin), 0, 1023, TurnRateMin, TurnRateMax);
+  int CameraAngle = map(analogRead(IntakeCameraPin), 0, 1023, IntakeCameraMin, IntakeCameraMax);
+  int ShootSpeed = map(analogRead(ShootSpeedPin), 0, 1023, ShootSpeedMin, ShootSpeedMax);
+  int ShootOff = map(analogRead(ShootOffPin), 0, 1023, ShootOffMin, ShootOffMax);
+
+  for (iSWIndex=0; iSWIndex<SWCount; iSWIndex++) {
+    uint8_t SWCurrState = !digitalRead(SWPin[iSWIndex]);
+    if (SWCurrState != SWLastState[iSWIndex]) {
+      SWLastState[iSWIndex] = SWCurrState;
+      Joystick.setButton(iSWIndex, SWLastState[iSWIndex]);
+    }
+    sprintf(SWLine,"%1u%1u", iSWIndex, SWLastState[iSWIndex]);
+    strcat(println[3], SWLine);
+  }
+
+  lcd.setCursor(0,0);
+  lcd.print(println[0]);
+  lcd.setCursor(0, 1);
+  sprintf(line1,"XA: %4u  YA: %4u", TurnRate, CameraAngle);
+  lcd.print(line1);
+  lcd.setCursor(0,2);
+  sprintf(line2,"ZR: %4u  SL: %4u", ShootSpeed, ShootOff);
+  lcd.print(line2);
+  lcd.setCursor(0,3);
+  lcd.print(println[3]);
+   
+  Joystick.setXAxis(TurnRate);
+  Joystick.setYAxis(CameraAngle);
+  Joystick.setRzAxis(ShootSpeed);
+  Joystick.setThrottle(ShootOff);
+  delay(50);
 }
