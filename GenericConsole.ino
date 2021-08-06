@@ -5,9 +5,9 @@
 #include <LiquidCrystal_I2C.h>
 
 // max counts for input types depend on the arduino board - leonardo assumed
-int POVCount = 2; // max 2
-int POTCount = 4; // max 4 in order defined by joystick true options matching sets
-int SWCount = 4; // max probably 10 for practicle use - 32 if display changed
+const int POVCount = 2; // max 2
+const int POTCount = 4; // max 4 in order defined by joystick true options matching sets
+const int SWCount = 4; // max probably 10 for practicle use - 32 if display changed
 /*
 * name id 
 * constant for type 
@@ -56,13 +56,13 @@ int ShootOffPin = A5;
 int ShootOffMax = 1023;
 int ShootOffMin = 0;
 
-int SWPin [] = {7, 6, 5, 4};
-//int SWButton [] = {0, 1, 2, 3};
-byte SWLastState [] = {0, 0, 0, 0};
-uint8_t iSWIndex = 0;
+int SWPin [SWCount] = {7, 6, 5, 4};
+int SWButton [SWCount] = {0, 1, 2, 3};
+int SWLastState [SWCount] = {0, 0, 0, 0};
+int iSWIndex = 0;
 
 char POVLine [11];
-char SWLine [2];
+char SWLine [3];
 char println [4] [21];
 int iPrintLnIndx = 0;
 int iPrintLnCnt = 4;
@@ -107,7 +107,7 @@ void loop() {
     int POVValue = analogRead(POVPin[iPOVIndex]);
     int POVPosition = (POVValue * POVSegments[iPOVIndex] + POVMidpoint[iPOVIndex]) / POVMax;
     int POVHeading = POVPosition * 45;
-    Joystick.setHatSwitch(iPOVIndex, POVHeading);
+    //Joystick.setHatSwitch(iPOVIndex, POVHeading);
     sprintf(POVLine, "POV%1u: %3u ", iPOVIndex, POVHeading);
     strcat(println[0], POVLine);
   }
@@ -116,23 +116,20 @@ void loop() {
   int CameraAngle = map(analogRead(IntakeCameraPin), 0, 1023, IntakeCameraMin, IntakeCameraMax);
   int ShootSpeed = map(analogRead(ShootSpeedPin), 0, 1023, ShootSpeedMin, ShootSpeedMax);
   int ShootOff = map(analogRead(ShootOffPin), 0, 1023, ShootOffMin, ShootOffMax);
-  Joystick.setXAxis(TurnRate);
-  Joystick.setYAxis(CameraAngle);
-  Joystick.setRzAxis(ShootSpeed);
-  Joystick.setThrottle(ShootOff);
+  //Joystick.setXAxis(TurnRate);
+  //Joystick.setYAxis(CameraAngle);
+  //Joystick.setRzAxis(ShootSpeed);
+  //Joystick.setThrottle(ShootOff);
 
-  for (iSWIndex=0; iSWIndex < SWCount; iSWIndex++) {
-    byte SWCurrState = !digitalRead(SWPin[iSWIndex]);
+  for (iSWIndex = 0; iSWIndex < SWCount; iSWIndex++) {
+    int SWCurrState = !digitalRead(SWPin[iSWIndex]);
     if (SWCurrState != SWLastState[iSWIndex]) {
-      Joystick.setButton(iSWIndex, SWCurrState);
+      Joystick.setButton(SWButton[iSWIndex], SWCurrState);
       SWLastState[iSWIndex] = SWCurrState;
     }
-    sprintf(SWLine,"%1u%1u", iSWIndex, SWLastState[iSWIndex]);
+    sprintf(SWLine,"%1u%1u", SWButton[iSWIndex], SWLastState[iSWIndex]);
     strcat(println[3], SWLine);
   }
-
-//  Joystick.setButton(0, HIGH);
-//  Joystick.setButton(0, LOW);
 
   lcd.setCursor(0,0);
   lcd.print(println[0]);
