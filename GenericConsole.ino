@@ -57,9 +57,9 @@ int ShootOffMax = 1023;
 int ShootOffMin = 0;
 
 int SWPin [] = {7, 6, 5, 4};
-int SWButton [] = {0, 1, 2, 3};
-uint8_t SWLastState [] = {0, 0, 0, 0};
-int iSWIndex = 0;
+//int SWButton [] = {0, 1, 2, 3};
+byte SWLastState [] = {0, 0, 0, 0};
+uint8_t iSWIndex = 0;
 
 char POVLine [11];
 char SWLine [2];
@@ -68,12 +68,11 @@ int iPrintLnIndx = 0;
 int iPrintLnCnt = 4;
 char line1 [21];
 char line2 [21];
-char line3 [21];
 
 void setup() {
   // put your setup code here, to run once:
 
-  Joystick.begin();
+  Joystick.begin(false);
   Joystick.setXAxisRange(0,1023);
   Joystick.setYAxisRange(0,1023);
   Joystick.setRzAxisRange(0,1023);
@@ -84,9 +83,9 @@ void setup() {
     POVMidpoint[iPOVIndex] = POVIncrement[iPOVIndex] / 2;
   }
 
-  for (iSWIndex = 0; iSWIndex<SWCount; iSWIndex++) {
+  for (iSWIndex = 0; iSWIndex < SWCount; iSWIndex++) {
     pinMode(SWPin[iSWIndex], INPUT_PULLUP);
-    //Joystick.releaseButton(SWButton[iSWIndex]);
+    Joystick.releaseButton(iSWIndex);
   }
   
   lcd.init();
@@ -100,11 +99,11 @@ void loop() {
   
   lcd.home();
 
-  for (iPrintLnIndx=0; iPrintLnIndx<iPrintLnCnt; iPrintLnIndx++) {
+  for (iPrintLnIndx=0; iPrintLnIndx < iPrintLnCnt; iPrintLnIndx++) {
     strcpy(println[iPrintLnIndx], "");
   }
 
-  for (iPOVIndex=0; iPOVIndex<POVCount; iPOVIndex++) {
+  for (iPOVIndex=0; iPOVIndex < POVCount; iPOVIndex++) {
     int POVValue = analogRead(POVPin[iPOVIndex]);
     int POVPosition = (POVValue * POVSegments[iPOVIndex] + POVMidpoint[iPOVIndex]) / POVMax;
     int POVHeading = POVPosition * 45;
@@ -117,16 +116,23 @@ void loop() {
   int CameraAngle = map(analogRead(IntakeCameraPin), 0, 1023, IntakeCameraMin, IntakeCameraMax);
   int ShootSpeed = map(analogRead(ShootSpeedPin), 0, 1023, ShootSpeedMin, ShootSpeedMax);
   int ShootOff = map(analogRead(ShootOffPin), 0, 1023, ShootOffMin, ShootOffMax);
+  Joystick.setXAxis(TurnRate);
+  Joystick.setYAxis(CameraAngle);
+  Joystick.setRzAxis(ShootSpeed);
+  Joystick.setThrottle(ShootOff);
 
-  for (iSWIndex=0; iSWIndex<SWCount; iSWIndex++) {
-    uint8_t SWCurrState = !digitalRead(SWPin[iSWIndex]);
+  for (iSWIndex=0; iSWIndex < SWCount; iSWIndex++) {
+    byte SWCurrState = !digitalRead(SWPin[iSWIndex]);
     if (SWCurrState != SWLastState[iSWIndex]) {
+      Joystick.setButton(iSWIndex, SWCurrState);
       SWLastState[iSWIndex] = SWCurrState;
-      Joystick.setButton(iSWIndex, SWLastState[iSWIndex]);
     }
     sprintf(SWLine,"%1u%1u", iSWIndex, SWLastState[iSWIndex]);
     strcat(println[3], SWLine);
   }
+
+//  Joystick.setButton(0, HIGH);
+//  Joystick.setButton(0, LOW);
 
   lcd.setCursor(0,0);
   lcd.print(println[0]);
@@ -139,9 +145,6 @@ void loop() {
   lcd.setCursor(0,3);
   lcd.print(println[3]);
    
-  Joystick.setXAxis(TurnRate);
-  Joystick.setYAxis(CameraAngle);
-  Joystick.setRzAxis(ShootSpeed);
-  Joystick.setThrottle(ShootOff);
+  Joystick.sendState();
   delay(50);
 }
