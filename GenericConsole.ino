@@ -41,26 +41,8 @@ int iPOVIndex = 0;
 int POTPin [] = {A2, A3, A4, A5};
 int POTMax [] = {1023, 1023, 1023, 1023};
 int POTMin [] = {0, 0, 0, 0};
-//char POTLit [4] [4] = {{"X", "A", ":", " "},
-//                    {"Y", "A", ":", " "},
-//                    {"Z", "R", ":", " "},
-//                    {"T", "h", ";", " "}};
+String POTLit [] = {"XAx", "YAx", "ZRt", "Thr"};
 int iPOTIndex = 0;
-
-int TurnRatePin = A2;
-int TurnRateMax = 1023;
-int TurnRateMin = 0;
-
-int IntakeCameraPin = A3;
-int IntakeCameraMax = 1023;
-int IntakeCameraMin = 0;
-
-int ShootSpeedPin = A4;
-int ShootSpeedMax = 1023;
-int ShootSpeedMin = 0;
-int ShootOffPin = A5;
-int ShootOffMax = 1023;
-int ShootOffMin = 0;
 
 int SWPin [] = {7, 6, 5, 4};
 int SWButton [] = {0, 1, 2, 3};
@@ -73,8 +55,6 @@ char SWLine [3];
 char println [4] [21];
 int iPrintLnIndx = 0;
 int iPrintLnCnt = 4;
-char line1 [21];
-char line2 [21];
 
 void setup() {
   // put your setup code here, to run once:
@@ -120,7 +100,7 @@ void loop() {
   
   for (iPOTIndex = 0; iPOTIndex < POTCount; iPOTIndex++) {
     int POTVal = map(analogRead(POTPin[iPOTIndex]), 0, 1023, POTMin[iPOTIndex], POTMax[iPOTIndex]);
-    sprintf(POTLine,"xxx: %4u ", POTVal);
+    sprintf(POTLine,"%3s: %4u ", POTLit[iPOTIndex].c_str(), POTVal);
     switch (iPOTIndex) {
     case 0:
       strcat(println[1], POTLine);
