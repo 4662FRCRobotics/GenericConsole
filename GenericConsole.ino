@@ -7,7 +7,7 @@
 // max counts for input types depend on the arduino board - leonardo assumed
 const int POVCount = 2; // max 2
 const int POTCount = 4; // max 4 in order defined by joystick true options matching sets
-const int SWCount = 4; // max probably 10 for practicle use - 32 if display changed
+const int SWCount = 10; // max probably 10 for practicle use - 32 if display changed
 /*
 * name id 
 * constant for type 
@@ -44,9 +44,9 @@ int POTMin [] = {0, 0, 0, 0};
 String POTLit [] = {"XAx", "YAx", "ZRt", "Thr"};
 int iPOTIndex = 0;
 
-int SWPin [] = {7, 6, 5, 4};
-int SWButton [] = {0, 1, 2, 3};
-int SWLastState [] = {0, 0, 0, 0};
+int SWPin [] = {7, 6, 5, 4, 13, 12, 11, 10, 9, 8};
+int SWButton [] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+int SWLastState [] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int iSWIndex = 0;
 
 char POVLine [11];
@@ -80,7 +80,7 @@ void setup() {
   lcd.setBacklight(255);
   
 }                                 
-  String strPosSwitchStatement = "V1 Generic 8/1/2021";
+  String strPosSwitchStatement = "V1 Generic 9/6/2021";
                                  
 void loop() {
   
